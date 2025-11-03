@@ -15,7 +15,7 @@ g++ -o snake_game snake_game.cpp
 ./snake_game.exe
 ```
 
-##Controls
+## Controls
 - W / ↑ - Move Up
 - A / ← - Move Left
 - S / ↓ - Move Down
@@ -23,10 +23,11 @@ g++ -o snake_game snake_game.cpp
 - P - Pause
 - X - Exit
 
-##Development Progress
-✅ Basic snake movement
-✅ Food generation and scoring
-✅ Emoji graphics implementation
-✅ Obstacle system
-✅ Game states and UI
+## Development Progress <br>
+✅ Basic snake movement <br>
+✅ Food generation and scoring <br>
+✅ Emoji graphics implementation <br>
+✅ Obstacle system <br>
+✅ Game states and UI <br>
+
 
