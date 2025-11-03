@@ -17,6 +17,8 @@ private:
     int direction;
     bool gameOver;
     int score;
+    int speed;
+    int fruitsEaten;
     
     enum Direction { STOP = 0, LEFT, RIGHT, UP, DOWN };
 
@@ -25,62 +27,80 @@ public:
         gameOver = false;
         direction = STOP;
         score = 0;
+        speed = 100;
+        fruitsEaten = 0;
         
-        // Initialize snake in the middle
+        // Initialize snake with 3 segments
         snake.push_back({WIDTH / 2, HEIGHT / 2});
+        snake.push_back({WIDTH / 2 - 1, HEIGHT / 2});
+        snake.push_back({WIDTH / 2 - 2, HEIGHT / 2});
         
-        // Generate first food
         generateFood();
     }
 
     void generateFood() {
         srand(time(0));
-        food.first = rand() % WIDTH;
-        food.second = rand() % HEIGHT;
+        bool onSnake;
+        do {
+            onSnake = false;
+            food.first = rand() % (WIDTH - 4) + 2;
+            food.second = rand() % (HEIGHT - 4) + 2;
+            
+            for (auto segment : snake) {
+                if (segment.first == food.first && segment.second == food.second) {
+                    onSnake = true;
+                    break;
+                }
+            }
+        } while (onSnake);
     }
 
     void draw() {
         system("cls");
         
-        // Draw top border
+        // Draw borders and game area
         for (int i = 0; i < WIDTH + 2; i++) cout << "#";
         cout << endl;
         
         for (int y = 0; y < HEIGHT; y++) {
             for (int x = 0; x < WIDTH; x++) {
-                // Draw left border
                 if (x == 0) cout << "#";
                 
-                // Draw snake head
                 if (x == snake[0].first && y == snake[0].second)
-                    cout << "O";
-                // Draw food
+                    cout << "O"; // Head
+                else if (isSnakeBody(x, y))
+                    cout << "o"; // Body
                 else if (x == food.first && y == food.second)
                     cout << "F";
-                // Draw empty space
                 else
                     cout << " ";
                 
-                // Draw right border
                 if (x == WIDTH - 1) cout << "#";
             }
             cout << endl;
         }
         
-        // Draw bottom border
         for (int i = 0; i < WIDTH + 2; i++) cout << "#";
         cout << endl;
         
-        cout << "Score: " << score << endl;
+        cout << "Score: " << score << " | Fruits: " << fruitsEaten << " | Length: " << snake.size() << endl;
+    }
+
+    bool isSnakeBody(int x, int y) {
+        for (int i = 1; i < snake.size(); i++) {
+            if (snake[i].first == x && snake[i].second == y)
+                return true;
+        }
+        return false;
     }
 
     void input() {
         if (_kbhit()) {
             switch (_getch()) {
-                case 'a': direction = LEFT; break;
-                case 'd': direction = RIGHT; break;
-                case 'w': direction = UP; break;
-                case 's': direction = DOWN; break;
+                case 'a': if (direction != RIGHT) direction = LEFT; break;
+                case 'd': if (direction != LEFT) direction = RIGHT; break;
+                case 'w': if (direction != DOWN) direction = UP; break;
+                case 's': if (direction != UP) direction = DOWN; break;
                 case 'x': gameOver = true; break;
             }
         }
@@ -89,7 +109,6 @@ public:
     void logic() {
         if (direction == STOP) return;
         
-        // Move head based on direction
         pair<int, int> newHead = snake[0];
         switch (direction) {
             case LEFT: newHead.first--; break;
@@ -98,25 +117,35 @@ public:
             case DOWN: newHead.second++; break;
         }
         
-        // Check wall collision
+        // Wall collision
         if (newHead.first < 0 || newHead.first >= WIDTH || 
             newHead.second < 0 || newHead.second >= HEIGHT) {
             gameOver = true;
             return;
         }
         
-        // Move snake
+        // Self collision
+        for (auto segment : snake) {
+            if (segment.first == newHead.first && segment.second == newHead.second) {
+                gameOver = true;
+                return;
+            }
+        }
+        
         snake.insert(snake.begin(), newHead);
         
-        // Check food collision
         if (newHead.first == food.first && newHead.second == food.second) {
             score += 10;
+            fruitsEaten++;
+            
+            // Increase speed
+            if (fruitsEaten % 5 == 0 && speed > 50) {
+                speed -= 10;
+            }
+            
             generateFood();
         } else {
-            // Remove tail if no food eaten
-            if (snake.size() > 1) {
-                snake.pop_back();
-            }
+            snake.pop_back();
         }
     }
 
@@ -125,7 +154,7 @@ public:
             draw();
             input();
             logic();
-            Sleep(100);
+            Sleep(speed);
         }
         
         cout << "Game Over! Final Score: " << score << endl;
