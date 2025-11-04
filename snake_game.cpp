@@ -4,6 +4,7 @@
 #include <vector>
 #include <cstdlib>
 #include <ctime>
+#include <string>
 
 using namespace std;
 
@@ -19,6 +20,7 @@ private:
     int score;
     int speed;
     int fruitsEaten;
+    string screenBuffer;
     
     enum Direction { STOP = 0, LEFT, RIGHT, UP, DOWN };
 
@@ -29,8 +31,8 @@ public:
         score = 0;
         speed = 100;
         fruitsEaten = 0;
+        screenBuffer.reserve((WIDTH + 3) * (HEIGHT + 6));
         
-        // Initialize snake with 3 segments
         snake.push_back({WIDTH / 2, HEIGHT / 2});
         snake.push_back({WIDTH / 2 - 1, HEIGHT / 2});
         snake.push_back({WIDTH / 2 - 2, HEIGHT / 2});
@@ -55,35 +57,61 @@ public:
         } while (onSnake);
     }
 
-    void draw() {
-        system("cls");
-        
-        // Draw borders and game area
-        for (int i = 0; i < WIDTH + 2; i++) cout << "#";
-        cout << endl;
+    void drawHeader() {
+        screenBuffer += "  +==================================================+\n";
+        screenBuffer += "  |               SNAKE GAME v1.0                  |\n";
+        screenBuffer += "  +==================================================+\n";
+    }
+
+    void drawGameBorder() {
+        screenBuffer += "  +";
+        for (int i = 0; i < WIDTH; i++) screenBuffer += "=";
+        screenBuffer += "+\n";
         
         for (int y = 0; y < HEIGHT; y++) {
+            screenBuffer += "  |";
             for (int x = 0; x < WIDTH; x++) {
-                if (x == 0) cout << "#";
-                
                 if (x == snake[0].first && y == snake[0].second)
-                    cout << "O"; // Head
+                    screenBuffer += "O";
                 else if (isSnakeBody(x, y))
-                    cout << "o"; // Body
+                    screenBuffer += "o";
                 else if (x == food.first && y == food.second)
-                    cout << "F";
+                    screenBuffer += "F";
                 else
-                    cout << " ";
-                
-                if (x == WIDTH - 1) cout << "#";
+                    screenBuffer += " ";
             }
-            cout << endl;
+            screenBuffer += "|\n";
         }
         
-        for (int i = 0; i < WIDTH + 2; i++) cout << "#";
-        cout << endl;
+        screenBuffer += "  +";
+        for (int i = 0; i < WIDTH; i++) screenBuffer += "=";
+        screenBuffer += "+\n";
+    }
+
+    void drawStats() {
+        screenBuffer += "\n";
+        screenBuffer += "  STATISTICS:\n";
+        screenBuffer += "  ==================================================\n";
+        screenBuffer += "  Score: " + to_string(score) + " points\n";
+        screenBuffer += "  Fruits Eaten: " + to_string(fruitsEaten) + "\n";
+        screenBuffer += "  Snake Length: " + to_string(snake.size()) + "\n";
+    }
+
+    void drawControls() {
+        screenBuffer += "\n";
+        screenBuffer += "  CONTROLS: WASD to move, X to exit\n";
+    }
+
+    void draw() {
+        screenBuffer.clear();
         
-        cout << "Score: " << score << " | Fruits: " << fruitsEaten << " | Length: " << snake.size() << endl;
+        drawHeader();
+        screenBuffer += "\n";
+        drawGameBorder();
+        drawStats();
+        drawControls();
+        
+        cout << screenBuffer;
     }
 
     bool isSnakeBody(int x, int y) {
@@ -96,12 +124,24 @@ public:
 
     void input() {
         if (_kbhit()) {
-            switch (_getch()) {
-                case 'a': if (direction != RIGHT) direction = LEFT; break;
-                case 'd': if (direction != LEFT) direction = RIGHT; break;
-                case 'w': if (direction != DOWN) direction = UP; break;
-                case 's': if (direction != UP) direction = DOWN; break;
-                case 'x': gameOver = true; break;
+            int key = _getch();
+            
+            if (key == 224 || key == 0) {
+                key = _getch();
+                switch (key) {
+                    case 75: if (direction != RIGHT) direction = LEFT; break;
+                    case 77: if (direction != LEFT) direction = RIGHT; break;
+                    case 72: if (direction != DOWN) direction = UP; break;
+                    case 80: if (direction != UP) direction = DOWN; break;
+                }
+            } else {
+                switch (key) {
+                    case 'a': case 'A': if (direction != RIGHT) direction = LEFT; break;
+                    case 'd': case 'D': if (direction != LEFT) direction = RIGHT; break;
+                    case 'w': case 'W': if (direction != DOWN) direction = UP; break;
+                    case 's': case 'S': if (direction != UP) direction = DOWN; break;
+                    case 'x': case 'X': gameOver = true; break;
+                }
             }
         }
     }
@@ -117,14 +157,12 @@ public:
             case DOWN: newHead.second++; break;
         }
         
-        // Wall collision
         if (newHead.first < 0 || newHead.first >= WIDTH || 
             newHead.second < 0 || newHead.second >= HEIGHT) {
             gameOver = true;
             return;
         }
         
-        // Self collision
         for (auto segment : snake) {
             if (segment.first == newHead.first && segment.second == newHead.second) {
                 gameOver = true;
@@ -138,15 +176,25 @@ public:
             score += 10;
             fruitsEaten++;
             
-            // Increase speed
             if (fruitsEaten % 5 == 0 && speed > 50) {
-                speed -= 10;
+                speed -= 5;
             }
             
             generateFood();
         } else {
             snake.pop_back();
         }
+    }
+
+    void showGameOver() {
+        system("cls");
+        cout << "  +==================================================+\n";
+        cout << "  |                   GAME OVER!                    |\n";
+        cout << "  +==================================================+\n\n";
+        cout << "  Final Score: " << score << " points\n";
+        cout << "  Fruits Eaten: " << fruitsEaten << "\n";
+        cout << "  Snake Length: " << snake.size() << "\n\n";
+        cout << "  Press any key to exit...\n";
     }
 
     void run() {
@@ -157,11 +205,20 @@ public:
             Sleep(speed);
         }
         
-        cout << "Game Over! Final Score: " << score << endl;
+        showGameOver();
+        _getch();
     }
 };
 
 int main() {
+    // Setup console
+    system("mode con: cols=60 lines=40");
+    HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_CURSOR_INFO cursorInfo;
+    cursorInfo.dwSize = 100;
+    cursorInfo.bVisible = FALSE;
+    SetConsoleCursorInfo(consoleHandle, &cursorInfo);
+    
     SnakeGame game;
     game.run();
     return 0;
