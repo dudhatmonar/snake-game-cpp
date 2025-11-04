@@ -1,4 +1,3 @@
-// after wall graphics add 
 #include <iostream>
 #include <conio.h>
 #include <windows.h>
@@ -213,13 +212,13 @@ public:
 
     void drawGameBorder() {
         // Draw top border with corners
-        screenBuffer += "  🧱";
-        for (int i = 0; i < WIDTH; i++) screenBuffer += "🧱";
-        screenBuffer += "🧱\n";
+        screenBuffer += "  +";
+        for (int i = 0; i < WIDTH; i++) screenBuffer += "=";
+        screenBuffer += "+\n";
         
         // Draw game area with side borders
         for (int y = 0; y < HEIGHT; y++) {
-            screenBuffer += "  🧱";
+            screenBuffer += "  |";
             for (int x = 0; x < WIDTH; x++) {
                 // Draw snake head
                 if (x == snake[0].first && y == snake[0].second) {
@@ -242,20 +241,20 @@ public:
                 }
                 // Draw obstacles
                 else if (isObstacleAt(x, y)) {
-                    screenBuffer += "🧱";  // Skull emoji for obstacles
+                    screenBuffer += "💀";  // Skull emoji for obstacles
                 }
                 // Draw empty space
                 else {
                     screenBuffer += "  ";  // Two spaces for emoji alignment
                 }
             }
-            screenBuffer += "🧱\n";
+            screenBuffer += "|\n";
         }
         
         // Draw bottom border
-        screenBuffer += "  🧱";
-        for (int i = 0; i < WIDTH; i++) screenBuffer += "🧱";
-        screenBuffer += "🧱\n";
+        screenBuffer += "  +";
+        for (int i = 0; i < WIDTH; i++) screenBuffer += "=";
+        screenBuffer += "+\n";
     }
 
     int getSnakeSegmentIndex(int x, int y) {
@@ -301,13 +300,13 @@ public:
 
     void drawControls() {
         screenBuffer += "\n";
-        // screenBuffer += "  CONTROLS:\n";
-        // screenBuffer += "  ==================================================\n";
-        // screenBuffer += "   W / Arrow Keys   Move Snake\n";
-        // screenBuffer += "   X                Exit Game\n";
-        // screenBuffer += "   P                Pause Game\n";
-        // screenBuffer += "\n";
-        // screenBuffer += "  💀 = Temporary Obstacles (Game Over if hit!)\n";
+        screenBuffer += "  CONTROLS:\n";
+        screenBuffer += "  ==================================================\n";
+        screenBuffer += "   W / Arrow Keys   Move Snake\n";
+        screenBuffer += "   X                Exit Game\n";
+        screenBuffer += "   P                Pause Game\n";
+        screenBuffer += "\n";
+        screenBuffer += "  💀 = Temporary Obstacles (Game Over if hit!)\n";
     }
 
     void draw() {
@@ -453,12 +452,12 @@ public:
         cout << "  |                   GAME OVER!                    |\n";
         cout << "  +==================================================+\n\n";
         
-        // cout << "  Final Statistics:\n";
-        // cout << "  ==================================================\n";
-        // cout << "  Score: " << score << " points\n";
-        // cout << "  Fruits Eaten: " << fruitsEaten << "\n";
-        // cout << "  Snake Length: " << snake.size() << "\n";
-        // cout << "  Highest Fruit: " << getFruitName(currentFruit) << " (" << currentFruitPoints << " points)\n\n";
+        cout << "  Final Statistics:\n";
+        cout << "  ==================================================\n";
+        cout << "  Score: " << score << " points\n";
+        cout << "  Fruits Eaten: " << fruitsEaten << "\n";
+        cout << "  Snake Length: " << snake.size() << "\n";
+        cout << "  Highest Fruit: " << getFruitName(currentFruit) << " (" << currentFruitPoints << " points)\n\n";
         
         cout << "  Press any key to exit...\n";
     }
