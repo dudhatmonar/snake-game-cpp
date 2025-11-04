@@ -11,15 +11,6 @@ using namespace std;
 const int WIDTH = 50;
 const int HEIGHT = 25;
 
-class Obstacle {
-public:
-    int x, y;
-    int timer;  // How long the obstacle will stay
-    bool active;
-    
-    Obstacle(int x, int y, int timer) : x(x), y(y), timer(timer), active(true) {}
-};
-
 class SnakeGame {
 private:
     vector<pair<int, int>> snake;
@@ -44,12 +35,6 @@ private:
     string currentFruit;
     int currentFruitPoints;
     bool emojiSupported;
-    
-    // Obstacles system
-    vector<Obstacle> obstacles;
-    int obstacleSpawnTimer;
-    const int OBSTACLE_SPAWN_TIME = 50;  // Frames between obstacle spawns
-    const int OBSTACLE_LIFETIME = 100;   // How long obstacles stay
 
     enum Direction { STOP = 0, LEFT, RIGHT, UP, DOWN };
 
@@ -61,7 +46,6 @@ public:
         speed = 100;
         fruitsEaten = 0;
         emojiSupported = false;
-        obstacleSpawnTimer = 0;
         screenBuffer.reserve((WIDTH + 3) * (HEIGHT + 10));
         
         // Try to initialize with emojis
@@ -109,30 +93,19 @@ public:
 
     void generateFood() {
         srand(time(0));
-        bool onSnakeOrObstacle;
+        bool onSnake;
         do {
-            onSnakeOrObstacle = false;
+            onSnake = false;
             food.first = rand() % (WIDTH - 4) + 2;
             food.second = rand() % (HEIGHT - 4) + 2;
             
-            // Check if food overlaps with snake
             for (auto segment : snake) {
                 if (segment.first == food.first && segment.second == food.second) {
-                    onSnakeOrObstacle = true;
+                    onSnake = true;
                     break;
                 }
             }
-            
-            // Check if food overlaps with obstacles
-            if (!onSnakeOrObstacle) {
-                for (auto& obstacle : obstacles) {
-                    if (obstacle.x == food.first && obstacle.y == food.second && obstacle.active) {
-                        onSnakeOrObstacle = true;
-                        break;
-                    }
-                }
-            }
-        } while (onSnakeOrObstacle);
+        } while (onSnake);
         
         // Select random fruit
         int fruitIndex = rand() % fruits.size();
@@ -140,69 +113,9 @@ public:
         currentFruitPoints = fruits[fruitIndex].second;
     }
 
-    void spawnObstacle() {
-        if (obstacleSpawnTimer <= 0) {
-            // Try to find a valid position for obstacle
-            int attempts = 0;
-            while (attempts < 20) {
-                int x = rand() % (WIDTH - 4) + 2;
-                int y = rand() % (HEIGHT - 4) + 2;
-                
-                bool validPosition = true;
-                
-                // Check if position overlaps with snake
-                for (auto segment : snake) {
-                    if (segment.first == x && segment.second == y) {
-                        validPosition = false;
-                        break;
-                    }
-                }
-                
-                // Check if position overlaps with food
-                if (validPosition && x == food.first && y == food.second) {
-                    validPosition = false;
-                }
-                
-                // Check if position overlaps with existing obstacles
-                if (validPosition) {
-                    for (auto& obstacle : obstacles) {
-                        if (obstacle.x == x && obstacle.y == y && obstacle.active) {
-                            validPosition = false;
-                            break;
-                        }
-                    }
-                }
-                
-                if (validPosition) {
-                    obstacles.push_back(Obstacle(x, y, OBSTACLE_LIFETIME));
-                    obstacleSpawnTimer = OBSTACLE_SPAWN_TIME;
-                    break;
-                }
-                attempts++;
-            }
-        } else {
-            obstacleSpawnTimer--;
-        }
-    }
-
-    void updateObstacles() {
-        // Update obstacle timers and remove expired ones
-        for (int i = obstacles.size() - 1; i >= 0; i--) {
-            obstacles[i].timer--;
-            if (obstacles[i].timer <= 0) {
-                obstacles.erase(obstacles.begin() + i);
-            }
-        }
-    }
-
-    bool isObstacleAt(int x, int y) {
-        for (auto& obstacle : obstacles) {
-            if (obstacle.x == x && obstacle.y == y && obstacle.active) {
-                return true;
-            }
-        }
-        return false;
-    }
+    // void clearScreen() {
+    //     system("cls");
+    // }
 
     void drawHeader() {
         screenBuffer += "  +==================================================+\n";
@@ -212,13 +125,13 @@ public:
 
     void drawGameBorder() {
         // Draw top border with corners
-        screenBuffer += "  +";
-        for (int i = 0; i < WIDTH; i++) screenBuffer += "=";
-        screenBuffer += "+\n";
+        screenBuffer += "  🧱";
+        for (int i = 0; i < WIDTH; i++) screenBuffer += "🧱";
+        screenBuffer += "🧱\n";
         
         // Draw game area with side borders
         for (int y = 0; y < HEIGHT; y++) {
-            screenBuffer += "  |";
+            screenBuffer += "  🧱";
             for (int x = 0; x < WIDTH; x++) {
                 // Draw snake head
                 if (x == snake[0].first && y == snake[0].second) {
@@ -239,22 +152,18 @@ public:
                 else if (x == food.first && y == food.second) {
                     screenBuffer += currentFruit;
                 }
-                // Draw obstacles
-                else if (isObstacleAt(x, y)) {
-                    screenBuffer += "💀";  // Skull emoji for obstacles
-                }
                 // Draw empty space
                 else {
                     screenBuffer += "  ";  // Two spaces for emoji alignment
                 }
             }
-            screenBuffer += "|\n";
+            screenBuffer += "🧱\n";
         }
         
         // Draw bottom border
-        screenBuffer += "  +";
-        for (int i = 0; i < WIDTH; i++) screenBuffer += "=";
-        screenBuffer += "+\n";
+        screenBuffer += "  🧱";
+        for (int i = 0; i < WIDTH; i++) screenBuffer += "🧱";
+        screenBuffer += "🧱\n";
     }
 
     int getSnakeSegmentIndex(int x, int y) {
@@ -272,7 +181,6 @@ public:
         screenBuffer += "  Score: " + to_string(score) + " points\n";
         screenBuffer += "  Fruits Eaten: " + to_string(fruitsEaten) + "\n";
         screenBuffer += "  Snake Length: " + to_string(snake.size()) + "\n";
-        screenBuffer += "  Active Obstacles: " + to_string(obstacles.size()) + "\n";
         
         // Show fruit name based on symbol
         string fruitName = getFruitName(currentFruit);
@@ -305,8 +213,6 @@ public:
         screenBuffer += "   W / Arrow Keys   Move Snake\n";
         screenBuffer += "   X                Exit Game\n";
         screenBuffer += "   P                Pause Game\n";
-        screenBuffer += "\n";
-        screenBuffer += "  💀 = Temporary Obstacles (Game Over if hit!)\n";
     }
 
     void draw() {
@@ -317,7 +223,7 @@ public:
         screenBuffer += "\n";
         drawGameBorder();
         drawStats();
-        drawControls();
+        // drawControls();
         
         // Print entire buffer at once
         cout << screenBuffer;
@@ -380,6 +286,7 @@ public:
     }
 
     void pauseGame() {
+        // clearScreen();
         cout << "  +==================================================+\n";
         cout << "  |               GAME PAUSED                       |\n";
         cout << "  |                                                  |\n";
@@ -405,12 +312,6 @@ public:
         // Check wall collision
         if (newHead.first < 0 || newHead.first >= WIDTH || 
             newHead.second < 0 || newHead.second >= HEIGHT) {
-            gameOver = true;
-            return;
-        }
-        
-        // Check obstacle collision
-        if (isObstacleAt(newHead.first, newHead.second)) {
             gameOver = true;
             return;
         }
@@ -441,13 +342,10 @@ public:
             // Remove tail if no food eaten
             snake.pop_back();
         }
-        
-        // Update obstacles system
-        spawnObstacle();
-        updateObstacles();
     }
 
     void showGameOver() {
+        // clearScreen();
         cout << "  +==================================================+\n";
         cout << "  |                   GAME OVER!                    |\n";
         cout << "  +==================================================+\n\n";
@@ -463,6 +361,8 @@ public:
     }
 
     void run() {
+        // clearScreen();
+        
         // Show welcome screen
         cout << "  +==================================================+\n";
         cout << "  |           WELCOME TO SNAKE GAME!               |\n";
