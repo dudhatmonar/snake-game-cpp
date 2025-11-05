@@ -30,4 +30,7 @@ g++ -o snake_game snake_game.cpp
 ✅ Obstacle system <br>
 ✅ Game states and UI <br>
 
+## Emoji Source
+- https://github.com/enescakir/emoji/blob/master/constants.go
+
 
