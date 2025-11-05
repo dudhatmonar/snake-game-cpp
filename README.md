@@ -33,4 +33,10 @@ g++ -o snake_game snake_game.cpp
 ## Emoji Source
 - https://github.com/enescakir/emoji/blob/master/constants.go
 
+## Arrow Key Handling Explained
+- Key 1: 224 or 0   ← "Hey, special key coming!"
+- Key 2: 75  ( ← )  ← "This is the Left Arrow"
+- Key 3: 77  ( → )  ← "This is the Right Arrow"
+- Key 4: 72  ( ↑ )  ← "This is the Up Arrow"
+- Key 5: 80  ( ↓ )  ← "This is the Down Arrow"
 
