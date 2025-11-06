@@ -1,13 +1,64 @@
-# Snake Game in C++
+# 🐍 Snake Game in C++ (IT603 Final Project)
 
-A terminal-based Snake game built with C++ featuring emoji graphics and dynamic obstacles.
+A modern, emoji-based console **Snake Game** built in **C++** using **Object-Oriented Programming (OOP)** principles.  
+The game includes colorful fruit items, random obstacles, scoring and high-score saving, smooth screen updates, and adjustable difficulty.
 
-## Features
-- 🐍 Emoji snake with colored body segments
-- 🍎 Multiple fruit types with different points
-- 💀 Temporary obstacles that appear and disappear
-- 🎯 Score system and progressive difficulty
-- ⌨️ Keyboard controls (WASD + Arrow keys)
+---
+
+## 🧩 Project Overview
+
+This project was developed as part of the **IT603 – Final Project** to demonstrate:
+- Understanding of **OOP concepts** (Encapsulation, Abstraction, Modularity)
+- Use of **file handling**, **keyboard input**, and **random number generation**
+- Application of **game logic and collision detection** in C++
+
+The game runs in the **Windows console** using emoji graphics for better visualization.
+
+---
+
+## 🚀 Features
+
+- **🎮 Object-Oriented Design:**  
+  Organized into classes `Snake`, `Food`, `Obstacle`, and `SnakeGame`.
+
+- **🍎 Multiple Fruits with Points:**  
+  Fruits like 🍎 🍇 🍓 🍊 🍌 🍍 each have different score values (10–40 points).
+
+- **🧱 Random Obstacles:**  
+  4–5 wall-style obstacles are placed randomly.  
+  Hitting an obstacle ends the game immediately.
+
+- **💯 Scoring System:**  
+  Displays score, fruits eaten, and snake length.  
+  High score is saved to a text file (`score.txt`).
+
+- **⏸ Pause & Restart:**  
+  Press `P` to pause, `R` to restart, `X` to exit.
+
+- **⚡ Increasing Difficulty:**  
+  Snake speed increases slightly every 5 fruits eaten.
+
+- **Emoji Graphics**  
+- Snake Head → 😎  
+- Snake Body → 🟢  
+- Wall/Obstacle → 🧱  
+- Fruits → 🍎 🍇 🍓 🍊 🍌 🍍  
+
+---
+
+## 🕹️ Controls
+
+| Key | Action |
+|-----|---------|
+| **W / ↑** | Move Up |
+| **S / ↓** | Move Down |
+| **A / ←** | Move Left |
+| **D / →** | Move Right |
+| **P** | Pause Game |
+| **X** | Exit Game |
+| **R** | Restart after Game Over |
+
+---
 
 ## How to Compile
 ```bash
@@ -24,11 +75,11 @@ snake_game.exe
 - X - Exit
 
 ## Development Progress <br>
-✅ Basic snake movement <br>
-✅ Food generation and scoring <br>
-✅ Emoji graphics implementation <br>
-✅ Obstacle system <br>
-✅ Game states and UI <br>
+- Basic snake movement <br>
+- Food generation and scoring <br>
+- Emoji graphics implementation <br>
+- Obstacle system <br>
+- Game states and UI <br>
 
 ## Emoji Source
 - https://github.com/enescakir/emoji/blob/master/constants.go
@@ -46,5 +97,6 @@ snake_game.exe
 - Food  -> Handles generating food (fruit) at random positions with symbols and points.                 <br>
 - Obstacle -> Manages obstacle generation and checking for collisions.                                     <br>
 - SnakeGame -> Main controller — manages game logic, rendering, and interactions between all other classes. <br>
+
 
 
