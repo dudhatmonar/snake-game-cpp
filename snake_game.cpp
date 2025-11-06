@@ -213,7 +213,7 @@ public:
 
     void drawHeader() {
         screenBuffer += "  +==================================================+\n";
-        screenBuffer += "  |             SNAKE GAME v4.0 (With Obstacles)     |\n";
+        screenBuffer += "  |             SNAKE GAME v4.0                      |\n";
         screenBuffer += "  +==================================================+\n";
     }
 
