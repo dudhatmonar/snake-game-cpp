@@ -41,11 +41,10 @@ snake_game.exe
 - Key 5: 80  ( ↓ )  ← "This is the Down Arrow"
 
 ## Classes Overview
-<br>
-| Class         | Purpose                                                                                      |   <br>
-| ------------- | -------------------------------------------------------------------------------------------- |<br>
-| **Snake**     | Handles the snake’s body, movement, direction, and collision detection.                      |<br>
-| **Food**      | Handles generating food (fruit) at random positions with symbols and points.                 |<br>
-| **Obstacle**  | Manages obstacle generation and checking for collisions.                                     |<br>
-| **SnakeGame** | Main controller — manages game logic, rendering, and interactions between all other classes. |<br>
+- Class -> Purpose                                                                                       <br>
+- Snake -> Handles the snake’s body, movement, direction, and collision detection.               <br>
+- Food  -> Handles generating food (fruit) at random positions with symbols and points.                 <br>
+- Obstacle -> Manages obstacle generation and checking for collisions.                                     <br>
+- SnakeGame -> Main controller — manages game logic, rendering, and interactions between all other classes. <br>
+
 
