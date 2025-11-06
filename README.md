@@ -12,7 +12,7 @@ A terminal-based Snake game built with C++ featuring emoji graphics and dynamic 
 ## How to Compile
 ```bash
 g++ -o snake_game snake_game.cpp
-./snake_game.exe
+snake_game.exe
 ```
 
 ## Controls
@@ -39,4 +39,13 @@ g++ -o snake_game snake_game.cpp
 - Key 3: 77  ( → )  ← "This is the Right Arrow"
 - Key 4: 72  ( ↑ )  ← "This is the Up Arrow"
 - Key 5: 80  ( ↓ )  ← "This is the Down Arrow"
+
+## Classes Overview
+<br>
+| Class         | Purpose                                                                                      |   <br>
+| ------------- | -------------------------------------------------------------------------------------------- |<br>
+| **Snake**     | Handles the snake’s body, movement, direction, and collision detection.                      |<br>
+| **Food**      | Handles generating food (fruit) at random positions with symbols and points.                 |<br>
+| **Obstacle**  | Manages obstacle generation and checking for collisions.                                     |<br>
+| **SnakeGame** | Main controller — manages game logic, rendering, and interactions between all other classes. |<br>
 
