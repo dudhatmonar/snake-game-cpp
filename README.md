@@ -24,7 +24,7 @@ The game runs in the **Windows console** using emoji graphics for better visuali
 - **🍎 Multiple Fruits with Points:**  
   Fruits like 🍎 🍇 🍓 🍊 🍌 🍍 each have different score values (10–40 points).
 
-- **🧱 Random Obstacles:**  
+- **💀 Random Obstacles:**  
   4–5 wall-style obstacles are placed randomly.  
   Hitting an obstacle ends the game immediately.
 
@@ -124,7 +124,7 @@ snake_game.exe
 - **Step 3:** Detect collisions:  
   - Hitting wall → Game Over.  
   - Hitting self → Game Over.  
-  - Hitting obstacle (🧱 /💀) → Game Over.  
+  - Hitting obstacle (💀) → Game Over.  
 - **Step 4:** Eat food → Grow snake, increase score, and slightly increase speed.  
 - **Step 5:** On Game Over → Show stats, save score, and offer restart option.
 
@@ -139,6 +139,7 @@ snake_game.exe
 - **Extensibility:** New fruits or features can easily be added.
 
 ---
+
 
 
 
