@@ -66,14 +66,6 @@ g++ -o snake_game snake_game.cpp
 snake_game.exe
 ```
 
-## Controls
-- W / ↑ - Move Up
-- A / ← - Move Left
-- S / ↓ - Move Down
-- D / → - Move Right
-- P - Pause
-- X - Exit
-
 ## Development Progress <br>
 - Basic snake movement <br>
 - Food generation and scoring <br>
@@ -91,12 +83,65 @@ snake_game.exe
 - Key 4: 72  ( ↑ )  ← "This is the Up Arrow"
 - Key 5: 80  ( ↓ )  ← "This is the Down Arrow"
 
-## Classes Overview
-- Class -> Purpose                                                                                       <br>
-- Snake -> Handles the snake’s body, movement, direction, and collision detection.               <br>
-- Food  -> Handles generating food (fruit) at random positions with symbols and points.                 <br>
-- Obstacle -> Manages obstacle generation and checking for collisions.                                     <br>
-- SnakeGame -> Main controller — manages game logic, rendering, and interactions between all other classes. <br>
+
+---
+
+## ⚙️ Classes Overview
+
+### 🐍 Snake
+- Handles snake’s body, direction, and movement.
+- **Functions:** `reset()`, `move()`, `isBody()`, `checkCollision()`, `getHead()`, `setDirection()`
+
+### 🍎 Food
+- Generates random fruit positions and points.
+- **Functions:** `generate()`, `getPosition()`, `getSymbol()`, `getPoints()`
+
+### 🧱 Obstacle
+- Spawns 4–5 random obstacles that end the game on collision.
+- **Functions:** `generate()`, `isObstacle()`, `getBlocks()`
+
+### 🎮 SnakeGame
+- Manages game logic, drawing, input, and scoring.
+- **Functions:**  
+  `draw()`, `logic()`, `input()`, `pauseGame()`, `showGameOver()`, `run()`
+
+---
+
+## 💾 File Handling
+
+- **File Used:** `score.txt`
+- **Purpose:** Stores the high score persistently.
+- **Functions Used:**
+  - `loadHighScore()` → Reads saved high score.
+  - `saveHighScore()` → Updates file when new record is achieved.
+
+---
+
+## 🧮 Game Logic Flow
+
+- **Step 1:** Initialize snake, food, and obstacles.  
+- **Step 2:** Start main loop (`draw()`, `input()`, `logic()`).  
+- **Step 3:** Detect collisions:  
+  - Hitting wall → Game Over.  
+  - Hitting self → Game Over.  
+  - Hitting obstacle (🧱) → Game Over.  
+- **Step 4:** Eat food → Grow snake, increase score, and slightly increase speed.  
+- **Step 5:** On Game Over → Show stats, save score, and offer restart option.
+
+---
+
+## 🧠 OOP Concepts Demonstrated
+
+- **Encapsulation:** Each class hides its internal data.  
+- **Abstraction:** Game interacts only with class methods, not internals.  
+- **Modularity:** Each game element (Snake, Food, Obstacle) is independent.  
+- **File Handling:** Used for reading/writing high scores.  
+- **Extensibility:** New fruits or features can easily be added.
+
+---
+
+
+
 
 
 
