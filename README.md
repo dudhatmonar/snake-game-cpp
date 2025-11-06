@@ -8,7 +8,7 @@ The game includes colorful fruit items, random obstacles, scoring and high-score
 ## 🧩 Project Overview
 
 This project was developed as part of the **IT603 – Final Project** to demonstrate:
-- Understanding of **OOP concepts** (Encapsulation, Abstraction, Modularity)
+- Understanding of **OOP concepts** (Encapsulation, Abstraction,..)
 - Use of **file handling**, **keyboard input**, and **random number generation**
 - Application of **game logic and collision detection** in C++
 
@@ -97,6 +97,7 @@ snake_game.exe
 - Food  -> Handles generating food (fruit) at random positions with symbols and points.                 <br>
 - Obstacle -> Manages obstacle generation and checking for collisions.                                     <br>
 - SnakeGame -> Main controller — manages game logic, rendering, and interactions between all other classes. <br>
+
 
 
 
