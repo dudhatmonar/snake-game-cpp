@@ -119,7 +119,7 @@ public:
 
     void drawHeader() {
         screenBuffer += "  +==================================================+\n";
-        screenBuffer += "  |               SNAKE GAME v2.0                  |\n";
+        screenBuffer += "  |               SNAKE GAME v2.0                    |\n";
         screenBuffer += "  +==================================================+\n";
     }
 
@@ -288,9 +288,9 @@ public:
     void pauseGame() {
         // clearScreen();
         cout << "  +==================================================+\n";
-        cout << "  |               GAME PAUSED                       |\n";
+        cout << "  |               GAME PAUSED                        |\n";
         cout << "  |                                                  |\n";
-        cout << "  |           Press any key to continue             |\n";
+        cout << "  |           Press any key to continue              |\n";
         cout << "  +==================================================+\n";
         _getch();
     }
@@ -347,7 +347,7 @@ public:
     void showGameOver() {
         // clearScreen();
         cout << "  +==================================================+\n";
-        cout << "  |                   GAME OVER!                    |\n";
+        cout << "  |                   GAME OVER!                     |\n";
         cout << "  +==================================================+\n\n";
         
         cout << "  Final Statistics:\n";
@@ -365,11 +365,11 @@ public:
         
         // Show welcome screen
         cout << "  +==================================================+\n";
-        cout << "  |           WELCOME TO SNAKE GAME!               |\n";
+        cout << "  |           WELCOME TO SNAKE GAME!                 |\n";
         cout << "  |                                                  |\n";
-        cout << "  |           Get ready to play...                  |\n";
+        cout << "  |           Get ready to play...                   |\n";
         cout << "  |                                                  |\n";
-        cout << "  |           Press any key to start!               |\n";
+        cout << "  |           Press any key to start!                |\n";
         cout << "  +==================================================+\n";
         _getch();
         
