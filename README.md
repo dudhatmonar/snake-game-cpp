@@ -41,7 +41,7 @@ The game runs in the **Windows console** using emoji graphics for better visuali
 - **Emoji Graphics**  
 - Snake Head → 😎  
 - Snake Body → 🟢  
-- Wall/Obstacle → 🧱  
+- Wall/Obstacle → 🧱/💀  
 - Fruits → 🍎 🍇 🍓 🍊 🍌 🍍  
 
 ---
@@ -96,7 +96,7 @@ snake_game.exe
 - Generates random fruit positions and points.
 - **Functions:** `generate()`, `getPosition()`, `getSymbol()`, `getPoints()`
 
-### 🧱 Obstacle
+### 💀 Obstacle
 - Spawns 4–5 random obstacles that end the game on collision.
 - **Functions:** `generate()`, `isObstacle()`, `getBlocks()`
 
@@ -124,7 +124,7 @@ snake_game.exe
 - **Step 3:** Detect collisions:  
   - Hitting wall → Game Over.  
   - Hitting self → Game Over.  
-  - Hitting obstacle (🧱) → Game Over.  
+  - Hitting obstacle (🧱 /💀) → Game Over.  
 - **Step 4:** Eat food → Grow snake, increase score, and slightly increase speed.  
 - **Step 5:** On Game Over → Show stats, save score, and offer restart option.
 
@@ -139,6 +139,7 @@ snake_game.exe
 - **Extensibility:** New fruits or features can easily be added.
 
 ---
+
 
 
 
