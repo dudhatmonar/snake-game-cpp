@@ -5,173 +5,244 @@
 #include <cstdlib>
 #include <ctime>
 #include <string>
+#include <fstream>
 
 using namespace std;
 
 const int WIDTH = 50;
 const int HEIGHT = 25;
+const string HIGH_SCORE_FILE = "score.txt";
 
+// ------------------ Cursor Movement for Smooth Screen ------------------
+void setCursorPosition(int x, int y) {
+    HANDLE output = GetStdHandle(STD_OUTPUT_HANDLE);
+    COORD pos = { (SHORT)x, (SHORT)y };
+    SetConsoleCursorPosition(output, pos);
+}
+
+// =========================== Class: Snake ===========================
+class Snake {
+private:
+    vector<pair<int, int>> body;
+    int direction;
+
+public:
+    enum Direction { STOP = 0, LEFT, RIGHT, UP, DOWN };
+
+    Snake() {
+        reset();
+    }
+
+    void reset() {
+        body.clear();
+        body.push_back({WIDTH / 2, HEIGHT / 2});
+        body.push_back({WIDTH / 2 - 1, HEIGHT / 2});
+        body.push_back({WIDTH / 2 - 2, HEIGHT / 2});
+        direction = STOP;
+    }
+
+    pair<int, int> getHead() const { return body[0]; }
+    vector<pair<int, int>> getBody() const { return body; }
+
+    void setDirection(int dir) { direction = dir; }
+    int getDirection() const { return direction; }
+
+    void move(bool grow = false) {
+        if (direction == STOP) return;
+
+        pair<int, int> newHead = body[0];
+        switch (direction) {
+            case LEFT: newHead.first--; break;
+            case RIGHT: newHead.first++; break;
+            case UP: newHead.second--; break;
+            case DOWN: newHead.second++; break;
+        }
+        body.insert(body.begin(), newHead);
+        if (!grow) body.pop_back();
+    }
+
+    bool isBody(int x, int y) const {
+        for (size_t i = 1; i < body.size(); ++i)
+            if (body[i].first == x && body[i].second == y)
+                return true;
+        return false;
+    }
+
+    bool checkCollision() const {
+        pair<int, int> head = body[0];
+        for (size_t i = 1; i < body.size(); ++i)
+            if (body[i] == head)
+                return true;
+        return false;
+    }
+
+    int length() const { return body.size(); }
+};
+
+// =========================== Class: Food ===========================
+class Food {
+private:
+    pair<int, int> position;
+    string symbol;
+    int points;
+
+    vector<pair<string, int>> fruits = {
+        {"🍎", 10}, {"🍇", 15}, {"🍓", 20},
+        {"🍊", 25}, {"🍌", 30}, {"🍍", 40}
+    };
+
+public:
+    void generate(const vector<pair<int, int>>& snakeBody, const vector<pair<int, int>>& obstacles) {
+        bool conflict;
+        do {
+            conflict = false;
+            position.first = rand() % (WIDTH - 4) + 2;
+            position.second = rand() % (HEIGHT - 4) + 2;
+
+            // check not on snake
+            for (auto s : snakeBody)
+                if (s == position) { conflict = true; break; }
+
+            // check not on obstacle
+            for (auto o : obstacles)
+                if (o == position) { conflict = true; break; }
+
+        } while (conflict);
+
+        int fruitIndex = rand() % fruits.size();
+        symbol = fruits[fruitIndex].first;
+        points = fruits[fruitIndex].second;
+    }
+
+    pair<int, int> getPosition() const { return position; }
+    string getSymbol() const { return symbol; }
+    int getPoints() const { return points; }
+};
+
+// =========================== Class: Obstacle ===========================
+
+class Obstacle {
+private:
+    vector<pair<int, int>> blocks;
+    const int count = 5; // ✅ only 4–5 obstacles for balanced difficulty
+
+public:
+    void generate(const vector<pair<int, int>>& snakeBody, const pair<int, int>& foodPos) {
+        blocks.clear();
+        bool conflict;
+        for (int i = 0; i < count; i++) {
+            pair<int, int> pos;
+            do {
+                conflict = false;
+                pos.first = rand() % (WIDTH - 4) + 2;
+                pos.second = rand() % (HEIGHT - 4) + 2;
+
+                // Prevent spawning on snake, food, or existing obstacles
+                for (auto s : snakeBody)
+                    if (s == pos) { conflict = true; break; }
+                if (pos == foodPos) conflict = true;
+                for (auto b : blocks)
+                    if (b == pos) { conflict = true; break; }
+
+            } while (conflict);
+            blocks.push_back(pos);
+        }
+    }
+
+    bool isObstacle(int x, int y) const {
+        for (auto b : blocks)
+            if (b.first == x && b.second == y)
+                return true;
+        return false;
+    }
+
+    const vector<pair<int, int>>& getBlocks() const { return blocks; }
+};
+
+
+// =========================== Class: SnakeGame ===========================
 class SnakeGame {
 private:
-    vector<pair<int, int>> snake;
-    pair<int, int> food;
-    int direction;
-    bool gameOver;
+    Snake snake;
+    Food food;
+    Obstacle obstacle;
     int score;
     int speed;
     int fruitsEaten;
+    int highScore;
+    bool gameOver;
     string screenBuffer;
-    
-    // Different fruit types with their symbols and points - using string for emojis
-    vector<pair<string, int>> fruits = {
-        {"A", 10},  // Apple (fallback - will try emoji later)
-        {"G", 15},  // Grapes (fallback)
-        {"S", 20},  // Strawberry (fallback)
-        {"O", 25},  // Orange (fallback)
-        {"B", 30},  // Banana (fallback)
-        {"P", 40}   // Pineapple (fallback)
-    };
-    
-    string currentFruit;
-    int currentFruitPoints;
-    bool emojiSupported;
-
-    enum Direction { STOP = 0, LEFT, RIGHT, UP, DOWN };
 
 public:
     SnakeGame() {
-        gameOver = false;
-        direction = STOP;
-        score = 0;
-        speed = 100;
-        fruitsEaten = 0;
-        emojiSupported = false;
-        screenBuffer.reserve((WIDTH + 3) * (HEIGHT + 10));
-        
-        // Try to initialize with emojis
-        initializeFruitsWithEmojis();
-        
-        // Initialize snake in the middle with 3 segments
-        snake.push_back({WIDTH / 2, HEIGHT / 2});
-        snake.push_back({WIDTH / 2 - 1, HEIGHT / 2});
-        snake.push_back({WIDTH / 2 - 2, HEIGHT / 2});
-        
-        // Generate first food
-        generateFood();
+        highScore = loadHighScore();
+        resetGame();
     }
 
-    void initializeFruitsWithEmojis() {
-        // Try to use emojis - if they don't display, fallback to letters
-        vector<pair<string, int>> emojiFruits = {
-            {"🍎", 10},  // Apple 🍎
-            {"🍇", 15},  // Grapes 🍇
-            {"\U0001F353", 20},  // Strawberry 🍓
-            {"\U0001F34A", 25},  // Orange 🍊
-            {"\U0001F34C", 30},  // Banana 🍌
-            {"\U0001F34D", 40}   // Pineapple 🍍
-        };
-        
-        // Test if emojis work by printing one
-        cout << "Testing emoji: " << emojiFruits[0].first << endl;
-        cout << "If you see an apple emoji above, emojis are supported!" << endl;
-        cout << "If you see strange characters, emojis are not supported." << endl;
-        cout << "Press any key to continue..." << endl;
-        _getch();
-        system("cls");
-        
-        // For now, use fallback letters to ensure the game works
-        // You can change this to emojiFruits if emojis work on your system
-        fruits = {
-            {"\U0001F34E", 10},  // Apple 🍎
-            {"\U0001F347", 15},  // Grapes 🍇
-            {"\U0001F353", 20},  // Strawberry 🍓
-            {"\U0001F34A", 25},  // Orange 🍊
-            {"\U0001F34C", 30},  // Banana 🍌
-            {"\U0001F34D", 40}   // Pineapple 🍍
-        };
+    int loadHighScore() {
+        ifstream inFile(HIGH_SCORE_FILE);
+        int hs = 0;
+        if (inFile.is_open()) {
+            inFile >> hs;
+            inFile.close();
+        }
+        return hs;
     }
 
-    void generateFood() {
-        srand(time(0));
-        bool onSnake;
-        do {
-            onSnake = false;
-            food.first = rand() % (WIDTH - 4) + 2;
-            food.second = rand() % (HEIGHT - 4) + 2;
-            
-            for (auto segment : snake) {
-                if (segment.first == food.first && segment.second == food.second) {
-                    onSnake = true;
-                    break;
-                }
+    void saveHighScore() {
+        if (score > highScore) {
+            ofstream outFile(HIGH_SCORE_FILE);
+            if (outFile.is_open()) {
+                outFile << score;
+                outFile.close();
+                highScore = score;
             }
-        } while (onSnake);
-        
-        // Select random fruit
-        int fruitIndex = rand() % fruits.size();
-        currentFruit = fruits[fruitIndex].first;
-        currentFruitPoints = fruits[fruitIndex].second;
+        }
     }
 
-    // void clearScreen() {
-    //     system("cls");
-    // }
+    void resetGame() {
+        snake.reset();
+        obstacle.generate(snake.getBody(), { -1, -1 });
+        food.generate(snake.getBody(), obstacle.getBlocks());
+        score = 0;
+        speed = 130;
+        fruitsEaten = 0;
+        gameOver = false;
+        screenBuffer.reserve((WIDTH + 3) * (HEIGHT + 10));
+    }
 
     void drawHeader() {
         screenBuffer += "  +==================================================+\n";
-        screenBuffer += "  |               SNAKE GAME v2.0                    |\n";
+        screenBuffer += "  |             SNAKE GAME v4.0 (With Obstacles)     |\n";
         screenBuffer += "  +==================================================+\n";
     }
 
-    void drawGameBorder() {
-        // Draw top border with corners
+    void drawGame() {
         screenBuffer += "  🧱";
         for (int i = 0; i < WIDTH; i++) screenBuffer += "🧱";
         screenBuffer += "🧱\n";
-        
-        // Draw game area with side borders
+
+        auto snakeBody = snake.getBody();
         for (int y = 0; y < HEIGHT; y++) {
             screenBuffer += "  🧱";
             for (int x = 0; x < WIDTH; x++) {
-                // Draw snake head
-                if (x == snake[0].first && y == snake[0].second) {
-                    screenBuffer += "😎";  // Cool snake head
-                }
-                // Draw snake body with gradient colors
-                else if (isSnakeBody(x, y)) {
-                    int segmentIndex = getSnakeSegmentIndex(x, y);
-                    if (segmentIndex < snake.size() / 3) {
-                        screenBuffer += "🟢";  // Green segments near head
-                    } else if (segmentIndex < 2 * snake.size() / 3) {
-                        screenBuffer += "🟡";  // Yellow middle segments
-                    } else {
-                        screenBuffer += "🟠";  // Orange segments near tail
-                    }
-                }
-                // Draw food
-                else if (x == food.first && y == food.second) {
-                    screenBuffer += currentFruit;
-                }
-                // Draw empty space
-                else {
-                    screenBuffer += "  ";  // Two spaces for emoji alignment
-                }
+                if (x == snakeBody[0].first && y == snakeBody[0].second)
+                    screenBuffer += "😎";
+                else if (snake.isBody(x, y))
+                    screenBuffer += "🟢";
+                else if (obstacle.isObstacle(x, y))
+                    screenBuffer += "💀"; // obstacle symbol
+                else if (x == food.getPosition().first && y == food.getPosition().second)
+                    screenBuffer += food.getSymbol();
+                else
+                    screenBuffer += "  ";
             }
             screenBuffer += "🧱\n";
         }
-        
-        // Draw bottom border
+
         screenBuffer += "  🧱";
         for (int i = 0; i < WIDTH; i++) screenBuffer += "🧱";
         screenBuffer += "🧱\n";
-    }
-
-    int getSnakeSegmentIndex(int x, int y) {
-        for (int i = 1; i < snake.size(); i++) {
-            if (snake[i].first == x && snake[i].second == y)
-                return i;
-        }
-        return -1;
     }
 
     void drawStats() {
@@ -179,233 +250,129 @@ public:
         screenBuffer += "  STATISTICS:\n";
         screenBuffer += "  ==================================================\n";
         screenBuffer += "  Score: " + to_string(score) + " points\n";
+        screenBuffer += "  High Score: " + to_string(highScore) + " points\n";
         screenBuffer += "  Fruits Eaten: " + to_string(fruitsEaten) + "\n";
-        screenBuffer += "  Snake Length: " + to_string(snake.size()) + "\n";
-        
-        // Show fruit name based on symbol
-        string fruitName = getFruitName(currentFruit);
-        screenBuffer += "  Current Fruit: " + fruitName + " " + currentFruit + " (" + to_string(currentFruitPoints) + " points)\n";
-    }
-
-    string getFruitName(const string& fruitSymbol) {
-        if (fruitSymbol == "A") return "Apple";
-        if (fruitSymbol == "G") return "Grapes";
-        if (fruitSymbol == "S") return "Strawberry";
-        if (fruitSymbol == "O") return "Orange";
-        if (fruitSymbol == "B") return "Banana";
-        if (fruitSymbol == "P") return "Pineapple";
-        
-        // For emojis
-        if (fruitSymbol == "🍎") return "Apple";
-        if (fruitSymbol == "🍇") return "Grapes";
-        if (fruitSymbol == "\U0001F353") return "Strawberry";
-        if (fruitSymbol == "\U0001F34A") return "Orange";
-        if (fruitSymbol == "\U0001F34C") return "Banana";
-        if (fruitSymbol == "\U0001F34D") return "Pineapple";
-        
-        return "Fruit";
-    }
-
-    void drawControls() {
-        screenBuffer += "\n";
-        screenBuffer += "  CONTROLS:\n";
-        screenBuffer += "  ==================================================\n";
-        screenBuffer += "   W / Arrow Keys   Move Snake\n";
-        screenBuffer += "   X                Exit Game\n";
-        screenBuffer += "   P                Pause Game\n";
+        screenBuffer += "  Snake Length: " + to_string(snake.length()) + "\n";
     }
 
     void draw() {
         screenBuffer.clear();
-        
-        // Draw all components
         drawHeader();
         screenBuffer += "\n";
-        drawGameBorder();
+        drawGame();
         drawStats();
-        // drawControls();
-        
-        // Print entire buffer at once
+        setCursorPosition(0, 0);
         cout << screenBuffer;
-    }
-
-    bool isSnakeBody(int x, int y) {
-        for (int i = 1; i < snake.size(); i++) {
-            if (snake[i].first == x && snake[i].second == y)
-                return true;
-        }
-        return false;
     }
 
     void input() {
         if (_kbhit()) {
             int key = _getch();
-            
-            // Handle arrow keys
             if (key == 224 || key == 0) {
                 key = _getch();
                 switch (key) {
-                    case 75: // Left arrow
-                        if (direction != RIGHT) direction = LEFT;
-                        break;
-                    case 77: // Right arrow
-                        if (direction != LEFT) direction = RIGHT;
-                        break;
-                    case 72: // Up arrow
-                        if (direction != DOWN) direction = UP;
-                        break;
-                    case 80: // Down arrow
-                        if (direction != UP) direction = DOWN;
-                        break;
+                    case 75: if (snake.getDirection() != Snake::RIGHT) snake.setDirection(Snake::LEFT); break;
+                    case 77: if (snake.getDirection() != Snake::LEFT) snake.setDirection(Snake::RIGHT); break;
+                    case 72: if (snake.getDirection() != Snake::DOWN) snake.setDirection(Snake::UP); break;
+                    case 80: if (snake.getDirection() != Snake::UP) snake.setDirection(Snake::DOWN); break;
                 }
-            }
-            // Handle regular keys
-            else {
+            } else {
                 switch (key) {
-                    case 'a': case 'A':
-                        if (direction != RIGHT) direction = LEFT;
-                        break;
-                    case 'd': case 'D':
-                        if (direction != LEFT) direction = RIGHT;
-                        break;
-                    case 'w': case 'W':
-                        if (direction != DOWN) direction = UP;
-                        break;
-                    case 's': case 'S':
-                        if (direction != UP) direction = DOWN;
-                        break;
-                    case 'x': case 'X':
-                        gameOver = true;
-                        break;
-                    case 'p': case 'P':
-                        pauseGame();
-                        break;
+                    case 'a': case 'A': if (snake.getDirection() != Snake::RIGHT) snake.setDirection(Snake::LEFT); break;
+                    case 'd': case 'D': if (snake.getDirection() != Snake::LEFT) snake.setDirection(Snake::RIGHT); break;
+                    case 'w': case 'W': if (snake.getDirection() != Snake::DOWN) snake.setDirection(Snake::UP); break;
+                    case 's': case 'S': if (snake.getDirection() != Snake::UP) snake.setDirection(Snake::DOWN); break;
+                    case 'p': case 'P': pauseGame(); break;
+                    case 'x': case 'X': gameOver = true; break;
                 }
             }
         }
     }
 
     void pauseGame() {
-        // clearScreen();
-        cout << "  +==================================================+\n";
-        cout << "  |               GAME PAUSED                        |\n";
-        cout << "  |                                                  |\n";
-        cout << "  |           Press any key to continue              |\n";
-        cout << "  +==================================================+\n";
+        cout << "\n  GAME PAUSED. Press any key to continue...\n";
         _getch();
     }
 
     void logic() {
-        if (direction == STOP) return;
-        
-        // Store current head position
-        pair<int, int> newHead = snake[0];
-        
-        // Move head based on direction
-        switch (direction) {
-            case LEFT: newHead.first--; break;
-            case RIGHT: newHead.first++; break;
-            case UP: newHead.second--; break;
-            case DOWN: newHead.second++; break;
-        }
-        
-        // Check wall collision
-        if (newHead.first < 0 || newHead.first >= WIDTH || 
-            newHead.second < 0 || newHead.second >= HEIGHT) {
+        snake.move();
+
+        auto head = snake.getHead();
+        if (head.first < 0 || head.first >= WIDTH || head.second < 0 || head.second >= HEIGHT) {
             gameOver = true;
             return;
         }
-        
-        // Check self collision
-        for (auto segment : snake) {
-            if (segment.first == newHead.first && segment.second == newHead.second) {
-                gameOver = true;
-                return;
-            }
+
+        if (snake.checkCollision()) {
+            gameOver = true;
+            return;
         }
-        
-        // Move snake
-        snake.insert(snake.begin(), newHead);
-        
-        // Check food collision
-        if (newHead.first == food.first && newHead.second == food.second) {
-            score += currentFruitPoints;
+
+        if (obstacle.isObstacle(head.first, head.second)) {
+            gameOver = true;
+            return;
+        }
+
+        if (head == food.getPosition()) {
+            score += food.getPoints();
             fruitsEaten++;
-            
-            // Increase speed slightly every 5 fruits
-            if (fruitsEaten % 5 == 0 && speed > 50) {
-                speed -= 5;
-            }
-            
-            generateFood();
-        } else {
-            // Remove tail if no food eaten
-            snake.pop_back();
+            snake.move(true);
+            obstacle.generate(snake.getBody(), food.getPosition());
+            food.generate(snake.getBody(), obstacle.getBlocks());
+            if (fruitsEaten % 5 == 0 && speed > 50) speed -= 5;
         }
     }
 
     void showGameOver() {
-        // clearScreen();
+        system("cls");
         cout << "  +==================================================+\n";
         cout << "  |                   GAME OVER!                     |\n";
         cout << "  +==================================================+\n\n";
-        
-        cout << "  Final Statistics:\n";
-        cout << "  ==================================================\n";
-        cout << "  Score: " << score << " points\n";
+        cout << "  Final Score: " << score << " points\n";
+        cout << "  High Score: " << (score > highScore ? score : highScore) << " points\n";
         cout << "  Fruits Eaten: " << fruitsEaten << "\n";
-        cout << "  Snake Length: " << snake.size() << "\n";
-        cout << "  Highest Fruit: " << getFruitName(currentFruit) << " (" << currentFruitPoints << " points)\n\n";
-        
-        cout << "  Press any key to exit...\n";
+        cout << "  Snake Length: " << snake.length() << "\n\n";
+        saveHighScore();
+        cout << "  Press R to Restart or X to Exit...\n";
     }
 
     void run() {
-        // clearScreen();
-        
-        // Show welcome screen
         cout << "  +==================================================+\n";
         cout << "  |           WELCOME TO SNAKE GAME!                 |\n";
-        cout << "  |                                                  |\n";
-        cout << "  |           Get ready to play...                   |\n";
-        cout << "  |                                                  |\n";
         cout << "  |           Press any key to start!                |\n";
         cout << "  +==================================================+\n";
         _getch();
-        
-        while (!gameOver) {
-            draw();
-            input();
-            logic();
-            Sleep(speed);
+
+        while (true) {
+            while (!gameOver) {
+                draw();
+                input();
+                logic();
+                Sleep(speed);
+            }
+
+            showGameOver();
+            char ch = _getch();
+            if (ch == 'r' || ch == 'R') resetGame();
+            else break;
         }
-        
-        showGameOver();
-        _getch();
     }
 };
 
-// Function to set console properties
+// =========================== Console Setup ===========================
 void setupConsole() {
-    // Set UTF-8 encoding for emoji support
     system("chcp 65001 > nul");
-    
     HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
-    
-    // Hide cursor
     CONSOLE_CURSOR_INFO cursorInfo;
     cursorInfo.dwSize = 100;
     cursorInfo.bVisible = FALSE;
     SetConsoleCursorInfo(consoleHandle, &cursorInfo);
-    
-    // Set console title
-    SetConsoleTitleA("Snake Game - Enhanced Version");
-    
-    // Set console size
+    SetConsoleTitleA("Snake Game - With Obstacles");
     system("mode con: cols=70 lines=45");
 }
 
 int main() {
+    srand((unsigned)time(NULL)); // seed random once
     setupConsole();
     SnakeGame game;
     game.run();
