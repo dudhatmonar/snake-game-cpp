@@ -29,15 +29,15 @@ private:
 public:
     enum Direction { STOP = 0, LEFT, RIGHT, UP, DOWN };
 
-    Snake() {
-        reset();
+    Snake(int startX = WIDTH / 2, int startY = HEIGHT / 2) {
+        reset(startX, startY);
     }
 
-    void reset() {
+    void reset(int startX = WIDTH / 2, int startY = HEIGHT / 2) {
         body.clear();
-        body.push_back({WIDTH / 2, HEIGHT / 2});
-        body.push_back({WIDTH / 2 - 1, HEIGHT / 2});
-        body.push_back({WIDTH / 2 - 2, HEIGHT / 2});
+        body.push_back({startX, startY});
+        body.push_back({startX - 1, startY});
+        body.push_back({startX - 2, startY});
         direction = STOP;
     }
 
@@ -76,6 +76,15 @@ public:
         return false;
     }
 
+    bool checkCollisionWithOther(const Snake &other) const {
+        pair<int, int> head = body[0];
+        auto otherBody = other.getBody();
+        for (size_t i = 0; i < otherBody.size(); ++i)
+            if (otherBody[i] == head)
+                return true;
+        return false;
+    }
+
     int length() const { return body.size(); }
 };
 
@@ -92,15 +101,19 @@ private:
     };
 
 public:
-    void generate(const vector<pair<int, int>>& snakeBody, const vector<pair<int, int>>& obstacles) {
+    void generate(const vector<pair<int, int>>& snake1Body, const vector<pair<int, int>>& snake2Body, const vector<pair<int, int>>& obstacles) {
         bool conflict;
         do {
             conflict = false;
             position.first = rand() % (WIDTH - 4) + 2;
             position.second = rand() % (HEIGHT - 4) + 2;
 
-            // check not on snake
-            for (auto s : snakeBody)
+            // check not on snake 1
+            for (auto s : snake1Body)
+                if (s == position) { conflict = true; break; }
+
+            // check not on snake 2
+            for (auto s : snake2Body)
                 if (s == position) { conflict = true; break; }
 
             // check not on obstacle
@@ -127,7 +140,7 @@ private:
     const int count = 5; // ✅ only 4–5 obstacles for balanced difficulty
 
 public:
-    void generate(const vector<pair<int, int>>& snakeBody, const pair<int, int>& foodPos) {
+    void generate(const vector<pair<int, int>>& snake1Body, const vector<pair<int, int>>& snake2Body, const pair<int, int>& foodPos) {
         blocks.clear();
         bool conflict;
         for (int i = 0; i < count; i++) {
@@ -137,8 +150,10 @@ public:
                 pos.first = rand() % (WIDTH - 4) + 2;
                 pos.second = rand() % (HEIGHT - 4) + 2;
 
-                // Prevent spawning on snake, food, or existing obstacles
-                for (auto s : snakeBody)
+                // Prevent spawning on snakes, food, or existing obstacles
+                for (auto s : snake1Body)
+                    if (s == pos) { conflict = true; break; }
+                for (auto s : snake2Body)
                     if (s == pos) { conflict = true; break; }
                 if (pos == foodPos) conflict = true;
                 for (auto b : blocks)
@@ -163,18 +178,22 @@ public:
 // =========================== Class: SnakeGame ===========================
 class SnakeGame {
 private:
-    Snake snake;
+    Snake snake1;
+    Snake snake2;
     Food food;
     Obstacle obstacle;
-    int score;
+    int score1;
+    int score2;
     int speed;
-    int fruitsEaten;
+    int fruitsEaten1;
+    int fruitsEaten2;
     int highScore;
     bool gameOver;
+    int loser;
     string screenBuffer;
 
 public:
-    SnakeGame() {
+    SnakeGame() : snake1(WIDTH / 3, HEIGHT / 2), snake2(2 * WIDTH / 3, HEIGHT / 2) {
         highScore = loadHighScore();
         resetGame();
     }
@@ -190,24 +209,31 @@ public:
     }
 
     void saveHighScore() {
-        if (score > highScore) {
+        int topScore = max(score1, score2);
+        if (topScore > highScore) {
             ofstream outFile(HIGH_SCORE_FILE);
             if (outFile.is_open()) {
-                outFile << score;
+                outFile << topScore;
                 outFile.close();
-                highScore = score;
+                highScore = topScore;
             }
         }
     }
 
     void resetGame() {
-        snake.reset();
-        obstacle.generate(snake.getBody(), { -1, -1 });
-        food.generate(snake.getBody(), obstacle.getBlocks());
-        score = 0;
+        snake1.reset(WIDTH / 3, HEIGHT / 2);
+        snake2.reset(2 * WIDTH / 3, HEIGHT / 2);
+        snake1.setDirection(Snake::RIGHT);
+        snake2.setDirection(Snake::LEFT);
+        obstacle.generate(snake1.getBody(), snake2.getBody(), { -1, -1 });
+        food.generate(snake1.getBody(), snake2.getBody(), obstacle.getBlocks());
+        score1 = 0;
+        score2 = 0;
         speed = 130;
-        fruitsEaten = 0;
+        fruitsEaten1 = 0;
+        fruitsEaten2 = 0;
         gameOver = false;
+        loser = 0;
         screenBuffer.reserve((WIDTH + 3) * (HEIGHT + 10));
     }
 
@@ -222,13 +248,15 @@ public:
         for (int i = 0; i < WIDTH; i++) screenBuffer += "🧱";
         screenBuffer += "🧱\n";
 
-        auto snakeBody = snake.getBody();
+        auto body1 = snake1.getBody();
+        auto body2 = snake2.getBody();
         for (int y = 0; y < HEIGHT; y++) {
             screenBuffer += "  🧱";
             for (int x = 0; x < WIDTH; x++) {
-                if (x == snakeBody[0].first && y == snakeBody[0].second)
+                if ((x == body1[0].first && y == body1[0].second) ||
+                    (x == body2[0].first && y == body2[0].second))
                     screenBuffer += "😎";
-                else if (snake.isBody(x, y))
+                else if (snake1.isBody(x, y) || snake2.isBody(x, y))
                     screenBuffer += "🟢";
                 else if (obstacle.isObstacle(x, y))
                     screenBuffer += "💀"; // obstacle symbol
@@ -249,10 +277,10 @@ public:
         screenBuffer += "\n";
         screenBuffer += "  STATISTICS:\n";
         screenBuffer += "  ==================================================\n";
-        screenBuffer += "  Score: " + to_string(score) + " points\n";
+        screenBuffer += "  P1 Score: " + to_string(score1) + " | P2 Score: " + to_string(score2) + "\n";
         screenBuffer += "  High Score: " + to_string(highScore) + " points\n";
-        screenBuffer += "  Fruits Eaten: " + to_string(fruitsEaten) + "\n";
-        screenBuffer += "  Snake Length: " + to_string(snake.length()) + "\n";
+        screenBuffer += "  P1 Fruits: " + to_string(fruitsEaten1) + " | P2 Fruits: " + to_string(fruitsEaten2) + "\n";
+        screenBuffer += "  P1 Length: " + to_string(snake1.length()) + " | P2 Length: " + to_string(snake2.length()) + "\n";
     }
 
     void draw() {
@@ -271,17 +299,17 @@ public:
             if (key == 224 || key == 0) {
                 key = _getch();
                 switch (key) {
-                    case 75: if (snake.getDirection() != Snake::RIGHT) snake.setDirection(Snake::LEFT); break;
-                    case 77: if (snake.getDirection() != Snake::LEFT) snake.setDirection(Snake::RIGHT); break;
-                    case 72: if (snake.getDirection() != Snake::DOWN) snake.setDirection(Snake::UP); break;
-                    case 80: if (snake.getDirection() != Snake::UP) snake.setDirection(Snake::DOWN); break;
+                    case 75: if (snake1.getDirection() != Snake::RIGHT) snake1.setDirection(Snake::LEFT); break;
+                    case 77: if (snake1.getDirection() != Snake::LEFT) snake1.setDirection(Snake::RIGHT); break;
+                    case 72: if (snake1.getDirection() != Snake::DOWN) snake1.setDirection(Snake::UP); break;
+                    case 80: if (snake1.getDirection() != Snake::UP) snake1.setDirection(Snake::DOWN); break;
                 }
             } else {
                 switch (key) {
-                    case 'a': case 'A': if (snake.getDirection() != Snake::RIGHT) snake.setDirection(Snake::LEFT); break;
-                    case 'd': case 'D': if (snake.getDirection() != Snake::LEFT) snake.setDirection(Snake::RIGHT); break;
-                    case 'w': case 'W': if (snake.getDirection() != Snake::DOWN) snake.setDirection(Snake::UP); break;
-                    case 's': case 'S': if (snake.getDirection() != Snake::UP) snake.setDirection(Snake::DOWN); break;
+                    case 'a': case 'A': if (snake2.getDirection() != Snake::RIGHT) snake2.setDirection(Snake::LEFT); break;
+                    case 'd': case 'D': if (snake2.getDirection() != Snake::LEFT) snake2.setDirection(Snake::RIGHT); break;
+                    case 'w': case 'W': if (snake2.getDirection() != Snake::DOWN) snake2.setDirection(Snake::UP); break;
+                    case 's': case 'S': if (snake2.getDirection() != Snake::UP) snake2.setDirection(Snake::DOWN); break;
                     case 'p': case 'P': pauseGame(); break;
                     case 'x': case 'X': gameOver = true; break;
                 }
@@ -295,31 +323,49 @@ public:
     }
 
     void logic() {
-        snake.move();
+        snake1.move();
+        snake2.move();
 
-        auto head = snake.getHead();
-        if (head.first < 0 || head.first >= WIDTH || head.second < 0 || head.second >= HEIGHT) {
+        auto head1 = snake1.getHead();
+        auto head2 = snake2.getHead();
+
+        bool p1Lost = (head1.first < 0 || head1.first >= WIDTH || head1.second < 0 || head1.second >= HEIGHT) ||
+                      snake1.checkCollision() || snake1.checkCollisionWithOther(snake2) ||
+                      obstacle.isObstacle(head1.first, head1.second);
+
+        bool p2Lost = (head2.first < 0 || head2.first >= WIDTH || head2.second < 0 || head2.second >= HEIGHT) ||
+                      snake2.checkCollision() || snake2.checkCollisionWithOther(snake1) ||
+                      obstacle.isObstacle(head2.first, head2.second);
+
+        if (head1 == head2 && snake1.getDirection() != Snake::STOP && snake2.getDirection() != Snake::STOP) {
+            p1Lost = true;
+            p2Lost = true;
+        }
+
+        if (p1Lost || p2Lost) {
             gameOver = true;
+            if (p1Lost && p2Lost) loser = 3;
+            else if (p1Lost) loser = 1;
+            else if (p2Lost) loser = 2;
             return;
         }
 
-        if (snake.checkCollision()) {
-            gameOver = true;
-            return;
+        if (head1 == food.getPosition()) {
+            score1 += food.getPoints();
+            fruitsEaten1++;
+            snake1.move(true);
+            obstacle.generate(snake1.getBody(), snake2.getBody(), food.getPosition());
+            food.generate(snake1.getBody(), snake2.getBody(), obstacle.getBlocks());
+            if ((fruitsEaten1 + fruitsEaten2) % 5 == 0 && speed > 50) speed -= 5;
         }
 
-        if (obstacle.isObstacle(head.first, head.second)) {
-            gameOver = true;
-            return;
-        }
-
-        if (head == food.getPosition()) {
-            score += food.getPoints();
-            fruitsEaten++;
-            snake.move(true);
-            obstacle.generate(snake.getBody(), food.getPosition());
-            food.generate(snake.getBody(), obstacle.getBlocks());
-            if (fruitsEaten % 5 == 0 && speed > 50) speed -= 5;
+        if (head2 == food.getPosition()) {
+            score2 += food.getPoints();
+            fruitsEaten2++;
+            snake2.move(true);
+            obstacle.generate(snake1.getBody(), snake2.getBody(), food.getPosition());
+            food.generate(snake1.getBody(), snake2.getBody(), obstacle.getBlocks());
+            if ((fruitsEaten1 + fruitsEaten2) % 5 == 0 && speed > 50) speed -= 5;
         }
     }
 
@@ -328,10 +374,15 @@ public:
         cout << "  +==================================================+\n";
         cout << "  |                   GAME OVER!                     |\n";
         cout << "  +==================================================+\n\n";
-        cout << "  Final Score: " << score << " points\n";
-        cout << "  High Score: " << (score > highScore ? score : highScore) << " points\n";
-        cout << "  Fruits Eaten: " << fruitsEaten << "\n";
-        cout << "  Snake Length: " << snake.length() << "\n\n";
+        if (loser == 1)
+            cout << "  🔴 Player 1 (Arrow Keys) Lost!\n\n";
+        else if (loser == 2)
+            cout << "  🔵 Player 2 (WASD) Lost!\n\n";
+        else if (loser == 3)
+            cout << "  💥 Both Players Lost!\n\n";
+
+        cout << "  P1 Final Score: " << score1 << " points | Fruits: " << fruitsEaten1 << "\n";
+        cout << "  P2 Final Score: " << score2 << " points | Fruits: " << fruitsEaten2 << "\n\n";
         saveHighScore();
         cout << "  Press R to Restart or X to Exit...\n";
     }
