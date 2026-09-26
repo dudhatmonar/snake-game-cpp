@@ -6,6 +6,7 @@
 #include <ctime>
 #include <string>
 #include <fstream>
+#include <memory>
 
 using namespace std;
 
@@ -79,8 +80,18 @@ public:
     int length() const { return body.size(); }
 };
 
+// =========================== Interface: IFood ===========================
+class IFood {
+public:
+    virtual ~IFood() = default;
+    virtual void generate(const vector<pair<int, int>>& snakeBody, const vector<pair<int, int>>& obstacles) = 0;
+    virtual pair<int, int> getPosition() const = 0;
+    virtual string getSymbol() const = 0;
+    virtual int getPoints() const = 0;
+};
+
 // =========================== Class: Food ===========================
-class Food {
+class Food : public IFood {
 private:
     pair<int, int> position;
     string symbol;
@@ -92,7 +103,7 @@ private:
     };
 
 public:
-    void generate(const vector<pair<int, int>>& snakeBody, const vector<pair<int, int>>& obstacles) {
+    void generate(const vector<pair<int, int>>& snakeBody, const vector<pair<int, int>>& obstacles) override {
         bool conflict;
         do {
             conflict = false;
@@ -114,9 +125,9 @@ public:
         points = fruits[fruitIndex].second;
     }
 
-    pair<int, int> getPosition() const { return position; }
-    string getSymbol() const { return symbol; }
-    int getPoints() const { return points; }
+    pair<int, int> getPosition() const override { return position; }
+    string getSymbol() const override { return symbol; }
+    int getPoints() const override { return points; }
 };
 
 // =========================== Class: Obstacle ===========================
@@ -164,7 +175,8 @@ public:
 class SnakeGame {
 private:
     Snake snake;
-    Food food;
+    Food defaultFood;
+    IFood* food;
     Obstacle obstacle;
     int score;
     int speed;
@@ -174,7 +186,13 @@ private:
     string screenBuffer;
 
 public:
-    SnakeGame() {
+    // Object Seam: Accepts optional IFood collaborator. Defaults to internal Food instance.
+    SnakeGame(IFood* customFood = nullptr) {
+        if (customFood != nullptr) {
+            food = customFood;
+        } else {
+            food = &defaultFood;
+        }
         highScore = loadHighScore();
         resetGame();
     }
@@ -203,7 +221,7 @@ public:
     void resetGame() {
         snake.reset();
         obstacle.generate(snake.getBody(), { -1, -1 });
-        food.generate(snake.getBody(), obstacle.getBlocks());
+        food->generate(snake.getBody(), obstacle.getBlocks());
         score = 0;
         speed = 130;
         fruitsEaten = 0;
@@ -232,8 +250,8 @@ public:
                     screenBuffer += "🟢";
                 else if (obstacle.isObstacle(x, y))
                     screenBuffer += "💀"; // obstacle symbol
-                else if (x == food.getPosition().first && y == food.getPosition().second)
-                    screenBuffer += food.getSymbol();
+                else if (x == food->getPosition().first && y == food->getPosition().second)
+                    screenBuffer += food->getSymbol();
                 else
                     screenBuffer += "  ";
             }
@@ -313,12 +331,12 @@ public:
             return;
         }
 
-        if (head == food.getPosition()) {
-            score += food.getPoints();
+        if (head == food->getPosition()) {
+            score += food->getPoints();
             fruitsEaten++;
             snake.move(true);
-            obstacle.generate(snake.getBody(), food.getPosition());
-            food.generate(snake.getBody(), obstacle.getBlocks());
+            obstacle.generate(snake.getBody(), food->getPosition());
+            food->generate(snake.getBody(), obstacle.getBlocks());
             if (fruitsEaten % 5 == 0 && speed > 50) speed -= 5;
         }
     }
@@ -357,6 +375,15 @@ public:
             else break;
         }
     }
+
+    // --- State Accessors & Control Methods for Testing ---
+    int getScore() const { return score; }
+    int getFruitsEaten() const { return fruitsEaten; }
+    int getSnakeLength() const { return snake.length(); }
+    bool isGameOver() const { return gameOver; }
+    void setDirection(int dir) { snake.setDirection(dir); }
+    pair<int, int> getSnakeHead() const { return snake.getHead(); }
+    void step() { logic(); }
 };
 
 // =========================== Console Setup ===========================
